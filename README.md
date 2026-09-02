@@ -29,7 +29,7 @@ exact 完全一致**（top-5 解 ±2Å 100% 重合）。
 | 文件 | 平台 | 依赖 | 用法 |
 |---|---|---|---|
 | `release_bin/LKlight-mac-arm64` | macOS（Apple Silicon/Intel via Rosetta）| 仅系统库 | 拷走 `chmod +x` 即跑 |
-| `release_bin/LKlight-win64.exe` | Windows 10/11 x64 | 仅系统自带 UCRT | 拷走即跑 |
+| `release_bin/LKlight-win64.exe` | Windows 10/11 x64 | 仅系统自带 UCRT | 拷走即跑（Windows Server 2022 真机 MSVC 原生编译）|
 | `release_bin/LKlight-linux-x64` | Linux x86-64 | **零动态依赖（static-pie）** | 拷走即跑 |
 
 验证：`release_bin/LKlight-linux-x64 score <rec.pdb> <lig.pdb> dna --tx 1 --ty 2 --tz 3`
