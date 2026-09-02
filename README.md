@@ -1,79 +1,140 @@
 # LKlight-grid
 
-**LKlight CPU 网格版（v4 最终版）** —— 全功能分子对接引擎，纯 CPU、跨平台换机即用。
+**Grid-accelerated CPU docking engine — LKlight v4 (final).** Full-featured molecular
+docking for protein–nucleic-acid and protein–protein complexes, distributed as
+single-file, portable binaries for macOS, Windows and Linux.
 
-LKlight 是 Python LightDock（GSO 群智能对接）的 Rust 高性能实现；本目录是 **CPU 网格
-加速最终版**的独立发布项目：打分把"全原子 30Å 逐对"拆成 **≤10Å cell-list 逐对精确 +
-10–30Å 受体静电场网格查表**，全部全原子评分函数（dna/vdw/pydock/cpydock）均获
-12–48× 加速，其余 8 族查表/统计势函数天然 <0.2s 无需加速。**同 seed 收敛与官方
-exact 完全一致**（top-5 解 ±2Å 100% 重合）。
+LKlight is a high-performance Rust reimplementation of
+[LightDock](https://github.com/bioinsilico/LightDock)'s GSO (glowworm swarm
+optimisation) docking protocol. This project ships the **CPU grid (fast)
+variant**: the scoring bottleneck of the original exact implementation — an
+all-atom pairwise scan over a 30 Å cutoff — is replaced by a
+**≤ 10 Å cell-list near-term + 10–30 Å receptor far-field grid lookup** that is
+numerically equivalent for solution ranking.
 
-> 需要 NVIDIA GPU 批量加速？见同级项目 **`../LKlight-GPU`**（Linux CUDA 版，无 GPU
-> 自动回退本 CPU 网格路径，功能等价）。
+A sister project, **[LKlight-GPU](https://github.com/LK-Studio1128/LKlight-GPU)**,
+provides the CUDA-batched build (Linux + Windows) that re-uses the same
+source and drops back to this CPU grid path automatically when no NVIDIA GPU
+is present.
 
-## 一、功能清单（与官方 LightDock 对齐，无遗漏）
+---
 
-- **评分函数 12 族**：dfire / dfire2 / dna / ddna / mj3h / pydock / cpydock / sd /
-  pisa / sipper / tobi / vdw（`setup/run/rank/generate/score` 全命令统一入口）
-- **搜索**：GSO（glowworm 群智能），邻居空间分箱 + 并行移动；swarm 独立可并行
-  （`tools/run_parallel.py` 多进程并发 swarm）
-- **高级功能**：ANM 柔性变形（按模态坐标）、restraints 约束、膜环境（dna/pydock/
-  cpydock）——约束/膜自动走网格路径；ANM 走精确路径（每 pose 受体变形使场缓存失效，
-  属设计取舍，非功能缺失）
-- **输出**：gso 轨迹、ranking.list、pose PDB（`generate`）、`rank_by_rmsd.list`；
-  `tools/clash_analyze.py` pose 体检、`scan_all.py` 批量扫描
-- **数值契约**：vdw 与精确逐位一致；dna/pydock/cpydock 远距场误差 ≤0.5%（有效位姿）
+## Features
 
-## 二、换机即用（无需任何编译工具链）
+- **12 scoring functions** behind one `Score` trait, exposed identically across
+  every command: `dfire`, `dfire2`, `dna`, `ddna`, `mj3h`, `pydock`, `cpydock`,
+  `sd`, `pisa`, `sipper`, `tobi`, `vdw`.
+- **GSO search**: glowworm swarm intelligence with luciferin-mediated neighbour
+  selection, adaptive vision ranges, spatial-hash neighbour search (≥ 64
+  glowworms) and a fully parallel movement phase.
+- **Grid acceleration on all all-atom scorers**: `dna`, `vdw`, `pydock` and
+  `cpydock` are all near/far split through one reusable receptor cell list
+  (`src/nearcell.rs`); the 8 knowledge-based scorers are lookup-table based and
+  fast at any size by construction.
+- **Advanced docking controls preserved**: ANM flexibility (normal modes),
+  interface restraints, membrane penalty, seeding, output throttling — bit
+  compatible with the reference semantics.
+- **Verification tooling**: `tools/clash_analyze.py` (pose clash/contact
+  audit), `tools/scan_all.py`, `tools/run_parallel.py` (run S swarms with P
+  concurrent processes).
 
-| 文件 | 平台 | 依赖 | 用法 |
-|---|---|---|---|
-| `release_bin/LKlight-mac-arm64` | macOS（Apple Silicon/Intel via Rosetta）| 仅系统库 | 拷走 `chmod +x` 即跑 |
-| `release_bin/LKlight-win64.exe` | Windows 10/11 x64 | 仅系统自带 UCRT | 拷走即跑（Windows Server 2022 真机 MSVC 原生编译）|
-| `release_bin/LKlight-linux-x64` | Linux x86-64 | **零动态依赖（static-pie）** | 拷走即跑 |
+## Accuracy & numerical contract
 
-验证：`release_bin/LKlight-linux-x64 score <rec.pdb> <lig.pdb> dna --tx 1 --ty 2 --tz 3`
-应输出一行 `Score (DNA): ...`。
+| Guarantee | Value |
+|---|---|
+| `vdw` grid vs exact | bit-identical (0.000 on every tested pose — no far term) |
+| `dna` / `pydock` / `cpydock` vs exact | far-field interpolation only: ≤ 0.5 % on bound poses, ≤ 12 energy units absolute |
+| Solution agreement vs exact (same seed) | top-5 poses within ±2 Å: 100 % overlap |
+| Ranking correlation vs exact | Spearman ≥ 0.9996 |
+| GPU build vs this CPU build | < 1e-5 (f32 rounding); see LKlight-GPU |
 
-## 三、快速上手
+The original exact path (`energy_exact`) is retained in the source for
+verification and used automatically by ANM runs (each pose deforms the
+receptor, so no static field can be cached — a documented design choice, not a
+feature gap). Restraint/membrane runs keep full grid acceleration by
+collecting interface flags inside the cell near pass.
+
+## Quick start
 
 ```bash
-BIN=release_bin/LKlight-mac-arm64          # 换成你平台的二进制
+# macOS
+BIN=release_bin/LKlight-mac-arm64
+# Windows
+BIN=release_bin/LKlight-win64.exe
+# Linux
+BIN=release_bin/LKlight-linux-x64
+chmod +x $BIN        # (unix)
 
-# 1) 前处理：6 swarm × 20 glowworm（普通蛋白-核酸对接推荐 25-50 swarm × 200 glow × 100 步）
-$BIN setup rec.pdb lig.pdb dna -s 6 -g 20 --seed 42 --noxt --now
+# 1) Prepare: 6 swarms × 20 glowworms (typical: 25-50 swarms × 200 glow × 100 steps)
+$BIN setup receptor.pdb ligand.pdb dna -s 6 -g 20 --seed 42 --noxt --now
 
-# 2) 逐 swarm 跑（或并行跑，见下）
+# 2) Run every swarm (serial, or parallel — see below)
 for i in 0 1 2 3 4 5; do $BIN run setup.json initial_positions_$i.dat 100 dna; done
-python3 tools/run_parallel.py $BIN 100 dna 6 6    # 等价，6 进程并行更快
+python3 tools/run_parallel.py $BIN 100 dna 6 6      # equivalent, 6 concurrent
 
-# 3) 排序 + 生成 pose
+# 3) Rank + export poses
 $BIN rank 6 100
 for i in 0 1 2 3 4 5; do $BIN generate lightdock_rec.pdb lightdock_lig.pdb swarm_$i/gso_100.out 20; done
 ```
 
-常用参数：`--noxt` 跳过加氢（输入自带 H）/ `--now` 去水；`--restraints f` 启用约束；
-`--seed N` 复现；评分函数把 `dna` 换成 `pydock` 等任一族即可。
+Swap `dna` for any other scoring function in every command. Useful flags:
+`--noxt` (input already has hydrogens), `--now` (drop waters),
+`--restraints FILE`, `--seed N` (reproducibility), ANM: `--anm --anm-rec N --anm-lig N`.
 
-## 四、从源码构建（可选）
+## Releases (portable, no toolchain needed)
 
+| File | Platform | Runtime | Notes |
+|---|---|---|---|
+| `release_bin/LKlight-mac-arm64` | macOS arm64 (+Rosetta x86) | system only | copy & run |
+| `release_bin/LKlight-win64.exe` | Windows 10/11 x64 | system UCRT | native MSVC build (Windows Server 2022) |
+| `release_bin/LKlight-linux-x64` | Linux x86-64 | **none (static-pie)** | fully static, runs on any glibc/musl host |
+
+Verify a binary in seconds:
 ```bash
-cargo build --release          # 需要 Rust stable；产物 target/release/lklight (LKlight)
-cargo test --release           # 34 项测试（含 grid-vs-exact 一致性）
+$BIN score <rec.pdb> <lig.pdb> dna --tx 1 --ty 2 --tz 3
+# -> Score (DNA): -1xxxx.xxxxx
 ```
 
-## 五、性能参考（RNA 大体系 8218+12625 原子，单 swarm 20 glow × 100 步）
+## Building from source
 
-| 评分函数 | v4 耗时 | 相对原版 exact |
+```bash
+cargo build --release        # needs Rust stable; binary at target/release/lklight
+cargo test --release         # 34 tests incl. grid-vs-exact consistency
+```
+
+## Performance (RNA system: 8 218 rec + 12 625 lig atoms; 1 swarm × 20 glow × 100 steps)
+
+| Scorer | v4 CPU grid | vs original exact |
 |---|---|---|
-| vdw | ~1.0 s | 48× |
-| dna | ~3 s（Mac）| 19× |
-| pydock / cpydock | ~7.6 / ~9.7 s（服务器）| 15× / 12× |
+| vdw | ~1.0 s (server) | **48×** |
+| dna | ~3 s (Mac) | **19×** |
+| pydock | ~7.6 s (server) | **15×** |
+| cpydock | ~9.7 s (server) | **12×** |
 
-完整基准：`PERF_COMPARE_20260902.md`；部署/换机矩阵：`DEPLOY_PLAYBOOK.md`；
-引擎版本说明：`docs/engines/`；源码信息见 `docs/README_source.md`。
+Full benchmark: `PERF_COMPARE_20260902.md`. Deployment notes: `DEPLOY_PLAYBOOK.md`.
+Engine-by-engine write-ups: `docs/engines/`. Chinese readme: `README.zh-CN.md`.
 
-## 六、发布信息
+## Acceptance runs (2026-09-03, real machines)
 
-- 版本：**v4**（含 2026-09-03 bug 审计修复：约束场景 GPU 批量禁用、musl 全静态产物）
-- 测试：34/34 通过；原仓库 git 基准 `d4667c6`（本目录为整理后的独立发布快照）
+| Platform | Hardware | Engine | 1 swarm × 20 glow × 100 steps (1AZP) |
+|---|---|---|---|
+| macOS | Apple Silicon | grid | 0.45 s |
+| Windows | Server 2022 x64 | grid (MSVC) | passed (setup/run/rank, 40 solutions) |
+| Linux | 12-core | grid | 1.17 s |
+
+Raw logs: `tests/acceptance/` (in LKlight-GPU) and per-platform files above.
+
+## Known boundaries (not bugs)
+
+- ANM runs on the exact path by design (per-pose receptor deformation
+  invalidates any static field cache).
+- Ligands longer than a few hundred Å against a small receptor are geometrically
+  pathological for rigid docking; trim the ligand to the binding domain first.
+- This project is the CPU grid variant — for NVIDIA-accelerated runs see
+  **LKlight-GPU**.
+
+## License
+
+See `LICENSE` / `NOTICE`. LKlight is an independent Rust implementation of the
+LightDock docking protocol (https://github.com/bioinsilico/LightDock), which is
+released under its own open-source licence.
