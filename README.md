@@ -1,13 +1,13 @@
 # LKlight-grid
 
-**Grid-accelerated CPU docking engine — LKlight v4 (final).** Full-featured molecular
+**Grid-accelerated CPU docking engine — LKlight-grid v1.1.0.** Full-featured molecular
 docking for protein–nucleic-acid and protein–protein complexes, distributed as
 single-file, portable binaries for macOS, Windows and Linux.
 
 LKlight is a high-performance Rust reimplementation of
 [LightDock](https://github.com/bioinsilico/LightDock)'s GSO (glowworm swarm
 optimisation) docking protocol. This project ships the **CPU grid (fast)
-variant**: the scoring bottleneck of the original exact implementation — an
+variant**: the scoring bottleneck of the original all-pairs implementation — an
 all-atom pairwise scan over a 30 Å cutoff — is replaced by a
 **≤ 10 Å cell-list near-term + 10–30 Å receptor far-field grid lookup** that is
 numerically equivalent for solution ranking.
@@ -42,13 +42,13 @@ is present.
 
 | Guarantee | Value |
 |---|---|
-| `vdw` grid vs exact | bit-identical (0.000 on every tested pose — no far term) |
-| `dna` / `pydock` / `cpydock` vs exact | far-field interpolation only: ≤ 0.5 % on bound poses, ≤ 12 energy units absolute |
-| Solution agreement vs exact (same seed) | top-5 poses within ±2 Å: 100 % overlap |
-| Ranking correlation vs exact | Spearman ≥ 0.9996 |
+| `vdw` grid vs original | bit-identical (0.000 on every tested pose — no far term) |
+| `dna` / `pydock` / `cpydock` vs original | far-field interpolation only: ≤ 0.5 % on bound poses, ≤ 12 energy units absolute |
+| Solution agreement vs original (same seed) | top-5 poses within ±2 Å: 100 % overlap |
+| Ranking correlation vs original | Spearman ≥ 0.9996 |
 | GPU build vs this CPU build | < 1e-5 (f32 rounding); see LKlight-GPU |
 
-The original exact path (`energy_exact`) is retained in the source for
+The original all-pairs path (`energy_exact`) is retained in the source for
 verification and used automatically by ANM runs (each pose deforms the
 receptor, so no static field can be cached — a documented design choice, not a
 feature gap). Restraint/membrane runs keep full grid acceleration by
@@ -99,12 +99,12 @@ $BIN score <rec.pdb> <lig.pdb> dna --tx 1 --ty 2 --tz 3
 
 ```bash
 cargo build --release        # needs Rust stable; binary at target/release/lklight
-cargo test --release         # 34 tests incl. grid-vs-exact consistency
+cargo test --release         # 34 tests incl. grid-vs-original consistency
 ```
 
 ## Performance (RNA system: 8 218 rec + 12 625 lig atoms; 1 swarm × 20 glow × 100 steps)
 
-| Scorer | v4 CPU grid | vs original exact |
+| Scorer | CPU grid | vs original |
 |---|---|---|
 | vdw | ~1.0 s (server) | **48×** |
 | dna | ~3 s (Mac) | **19×** |
@@ -126,7 +126,7 @@ Raw logs: `tests/acceptance/` (in LKlight-GPU) and per-platform files above.
 
 ## Known boundaries (not bugs)
 
-- ANM runs on the exact path by design (per-pose receptor deformation
+- ANM runs on the original all-pairs path by design (per-pose receptor deformation
   invalidates any static field cache).
 - Ligands longer than a few hundred Å against a small receptor are geometrically
   pathological for rigid docking; trim the ligand to the binding domain first.

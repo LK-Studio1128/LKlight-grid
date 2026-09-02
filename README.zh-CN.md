@@ -1,12 +1,12 @@
 # LKlight-grid
 
-**LKlight CPU 网格版（v4 最终版）** —— 全功能分子对接引擎，纯 CPU、跨平台换机即用。
+**LKlight CPU 网格版（v1.1.0）** —— 全功能分子对接引擎，纯 CPU、跨平台换机即用。
 
 LKlight 是 Python LightDock（GSO 群智能对接）的 Rust 高性能实现；本目录是 **CPU 网格
 加速最终版**的独立发布项目：打分把"全原子 30Å 逐对"拆成 **≤10Å cell-list 逐对精确 +
 10–30Å 受体静电场网格查表**，全部全原子评分函数（dna/vdw/pydock/cpydock）均获
 12–48× 加速，其余 8 族查表/统计势函数天然 <0.2s 无需加速。**同 seed 收敛与官方
-exact 完全一致**（top-5 解 ±2Å 100% 重合）。
+原版完全一致**（top-5 解 ±2Å 100% 重合）。
 
 > 需要 NVIDIA GPU 批量加速？见同级项目 **`../LKlight-GPU`**（Linux CUDA 版，无 GPU
 > 自动回退本 CPU 网格路径，功能等价）。
@@ -59,12 +59,12 @@ for i in 0 1 2 3 4 5; do $BIN generate lightdock_rec.pdb lightdock_lig.pdb swarm
 
 ```bash
 cargo build --release          # 需要 Rust stable；产物 target/release/lklight (LKlight)
-cargo test --release           # 34 项测试（含 grid-vs-exact 一致性）
+cargo test --release           # 34 项测试（含 grid-vs-原版 一致性）
 ```
 
 ## 五、性能参考（RNA 大体系 8218+12625 原子，单 swarm 20 glow × 100 步）
 
-| 评分函数 | v4 耗时 | 相对原版 exact |
+| 评分函数 | 耗时 | 相对原版 |
 |---|---|---|
 | vdw | ~1.0 s | 48× |
 | dna | ~3 s（Mac）| 19× |
@@ -75,5 +75,5 @@ cargo test --release           # 34 项测试（含 grid-vs-exact 一致性）
 
 ## 六、发布信息
 
-- 版本：**v4**（含 2026-09-03 bug 审计修复：约束场景 GPU 批量禁用、musl 全静态产物）
+- 版本：**v1.1.0**（含 2026-09-03 bug 审计修复：约束场景 GPU 批量禁用、musl 全静态产物）
 - 测试：34/34 通过；原仓库 git 基准 `d4667c6`（本目录为整理后的独立发布快照）
