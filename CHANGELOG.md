@@ -8,6 +8,36 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.2.0] — 2026-09-05
+
+### Added: Far-field grid at 0.5 Å reference resolution (default)
+
+- The far-field 10–30 Å electrostatic (and VDW-shell) potential grid is now
+  built at **0.5 Å spacing** (previously 1.0 Å), matching the reference
+  all-atom LKlight engine far more closely while leaving the exact
+  (≤10 Å) near-field path untouched. Grid spacing is set by the
+  `SPACING` constant and the box half-width is now derived as
+  `spread = ceil(FIELD_RMAX / spacing) + 2` instead of a hard-coded ±32
+  cells (which was sized for 1 Å and would have truncated the field at
+  0.5 Å). Measured on the BM5 1AZP complex: worst-case per-pose absolute
+  far-field deviation vs. the reference engine drops from **9.60 → 6.94**
+  energy units (~1.4×) and RMSD from 4.09 → 2.74, i.e. most of the residual
+  grid error is removed. See the manuscript2 §3.7 / Table 5 update.
+
+### Changed: Shell-band box scan for faster grid setup (bit-identical)
+
+- `ReceptorField::build()` previously scanned the entire 3-D box around the
+  receptor and tested every cell against the 10–30 Å shell. The scan now
+  prunes whole `(y,z)` rows whose perpendicular distance already exceeds
+  the shell outer radius and visits only the contiguous run of `x` slabs
+  that can intersect the shell (with a ±1-cell margin). Every written cell
+  still passes the identical `d² > r_min² && d² ≤ r_max²` test, so the set
+  and order of written grid points are unchanged and the `f32` potential
+  field is **bit-identical** to the previous build. Benchmark (0.5 Å,
+  1AZP): grid build + first score 1.57 s → 1.02 s (~1.55×).
+
+---
+
 ## [1.1.0] — 2026-08-29
 
 ### Fixed (found during multi-scenario testing, 2026-08-29)

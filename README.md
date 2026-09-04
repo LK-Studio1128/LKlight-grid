@@ -1,6 +1,6 @@
 # LKlight-grid
 
-**Grid-accelerated CPU docking engine — LKlight-grid v1.1.0.** Full-featured molecular
+**Grid-accelerated CPU docking engine — LKlight-grid v1.2.0.** Full-featured molecular
 docking for protein–nucleic-acid and protein–protein complexes, distributed as
 single-file, portable binaries for macOS, Windows and Linux.
 
@@ -47,6 +47,12 @@ is present.
 | Solution agreement vs original (same seed) | top-5 poses within ±2 Å: 100 % overlap |
 | Ranking correlation vs original | Spearman ≥ 0.9996 |
 | GPU build vs this CPU build | < 1e-5 (f32 rounding); see LKlight-GPU |
+
+Since **v1.2.0** the far-field 10–30 Å grid is built at **0.5 Å spacing**
+(near-reference resolution) instead of 1.0 Å; on 1AZP the worst-case per-pose
+absolute deviation vs. the reference engine drops from ~9.6 to ~6.9 energy
+units (~1.4×) with no change to the near-field exact path. Grid build is also
+~1.55× faster via shell-band scan pruning, keeping results bit-identical.
 
 The original all-pairs path (`energy_exact`) is retained in the source for
 verification and used automatically by ANM runs (each pose deforms the

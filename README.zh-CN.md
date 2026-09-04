@@ -1,6 +1,6 @@
 # LKlight-grid
 
-**LKlight CPU 网格版（v1.1.0）** —— 全功能分子对接引擎，纯 CPU、跨平台换机即用。
+**LKlight CPU 网格版（v1.2.0）** —— 全功能分子对接引擎，纯 CPU、跨平台换机即用。
 
 LKlight 是 Python LightDock（GSO 群智能对接）的 Rust 高性能实现；本目录是 **CPU 网格
 加速最终版**的独立发布项目：打分把"全原子 30Å 逐对"拆成 **≤10Å cell-list 逐对精确 +
@@ -22,7 +22,8 @@ LKlight 是 Python LightDock（GSO 群智能对接）的 Rust 高性能实现；
   属设计取舍，非功能缺失）
 - **输出**：gso 轨迹、ranking.list、pose PDB（`generate`）、`rank_by_rmsd.list`；
   `tools/clash_analyze.py` pose 体检、`scan_all.py` 批量扫描
-- **数值契约**：vdw 与精确逐位一致；dna/pydock/cpydock 远距场误差 ≤0.5%（有效位姿）
+- **数值契约**：vdw 与精确逐位一致；dna/pydock/cpydock 远距场误差 ≤0.5%（有效位姿）。
+  v1.2.0 起远场网格以 0.5 Å 格距构建（参考级精度），残余远场绝对偏差约降 1.4×
 
 ## 二、换机即用（无需任何编译工具链）
 
@@ -75,5 +76,6 @@ cargo test --release           # 34 项测试（含 grid-vs-原版 一致性）
 
 ## 六、发布信息
 
-- 版本：**v1.1.0**（含 2026-09-03 bug 审计修复：约束场景 GPU 批量禁用、musl 全静态产物）
+- 版本：**v1.2.0**（远场网格升级 0.5 Å 参考分辨率 + 建场环形壳扫描提速，逐位不变）
+  - v1.1.0：2026-09-03 bug 审计修复（约束场景 GPU 批量禁用、musl 全静态产物）
 - 测试：34/34 通过；原仓库 git 基准 `d4667c6`（本目录为整理后的独立发布快照）
