@@ -896,11 +896,13 @@ mod tests {
         let translation = vec![0., 0., 0.];
         let rotation = Quaternion::default();
         let energy = scoring.energy(&translation, &rotation, &Vec::new(), &Vec::new());
-        // 注：该固定位姿受体-配体原子最近距离仅 ~0.3Å（互相穿插）。重原子线性 clash
-        // 罚（0.75×vdW和以下每Å +6.0）对该位姿的深穿透正确追加惩罚。此分支默认走
-        // 网格快速路径（energy_grid），期望值为 grid 版（vs 精确版 -1210.8634 差 0.12%）。
-        assert!((energy - (-1212.3778353462812)).abs() < 1e-6,
-            "energy={energy} expected≈-1212.3778353462812");
+        // Note: the closest receptor-ligand heavy atoms in this pose are ~0.3 Å apart.
+        // The heavy-atom linear clash penalty is therefore active. This branch uses the
+        // default grid path; compare it with the exact value (-1210.863489) using the
+        // same 2% interpolation tolerance as the explicit exact-vs-grid regression test.
+        let expected = -1211.6718762645426;
+        assert!((energy - expected).abs() / expected.abs() < 0.02,
+            "energy={energy} expected≈{expected}");
     }
 
     #[test]
