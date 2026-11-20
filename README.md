@@ -1,6 +1,6 @@
 # LKlight-grid
 
-**Grid-accelerated CPU docking engine — LKlight-grid v1.2.0.** Full-featured molecular
+**Grid-accelerated CPU docking engine — LKlight-grid v1.2.1.** Full-featured molecular
 docking for protein–nucleic-acid and protein–protein complexes, distributed as
 single-file, portable binaries for macOS, Windows and Linux.
 

@@ -8,6 +8,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.2.1] — 2026-11-21
+
+### Fixed
+- Reject incompatible scoring functions for nucleic-acid inputs instead of
+  emitting a successful-looking constant zero score.
+- Propagate worker failures to the process exit status.
+- Keep the grid DNA regression within the documented 2% interpolation tolerance.
+
 ## [1.2.0] — 2026-09-05
 
 ### Added: Far-field grid at 0.5 Å reference resolution (default)
