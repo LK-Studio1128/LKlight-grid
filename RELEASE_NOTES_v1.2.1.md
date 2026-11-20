@@ -6,15 +6,16 @@ score on protein–DNA / RNA inputs.
 
 ## Fixed
 
-- Nucleic-acid inputs are validated before scoring. Only `dna` and `ddna` are
-  accepted; incompatible methods fail clearly with exit code 2.
+- Nucleic-acid inputs are validated before scoring. `dna`, `ddna`, `pydock`,
+  `cpydock`, and `vdw` are allowed; incompatible amino-acid-only/statistical
+  methods fail clearly with exit code 2.
 - Worker-thread failures are reflected in the process exit status.
 - The 1AZP grid DNA regression test now uses a relative tolerance consistent
   with the 0.5 Å interpolated grid path while preserving the expected energy.
 
 ## Validation
 
-- `cargo test --release --lib`: **34 passed**.
+- `cargo test --release --lib`: **36 passed**.
 - Real protein–DNA regression (`MYB46-ALL.pdb` + `proCDH653-1137.pdb`,
   `score ... dna`): **-5186.346373**, not zero.
 - A 1 swarm × 20 glowworms × 20 steps DNA docking produced a varying ranked
